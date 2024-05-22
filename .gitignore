@@ -1,0 +1,12 @@
+/vendor
+/build
+/library/*build
+/library/*dll
+*.log
+.env
+composer.lock
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/LICENSE
