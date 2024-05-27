@@ -61,7 +61,7 @@ $webview->bind('apps', function ($seq, $req, $context) {
     if($req){
         $apps = array_filter($apps, function ($app) use ($req) {
             var_dump($req[0]);
-            return stripos(strtolower($app['Name']), $req[0]) !== false || stripos(strtolower($app['Desc']), $req[0]) !== false;
+            return stripos($app['Name'], $req[0]) !== false || stripos($app['Desc'], $req[0]) !== false;
         });
     }
     return ok('', ['path'=>$dir, 'apps'=>$apps, 'is_file'=>$is_file]);
