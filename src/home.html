@@ -7,59 +7,117 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="public/daisyui.min.css">
     <script src="public/tailwindcss.js"></script>
+    <script src="public/jquery-3.7.1.min.js"></script>
     <title>Document</title>
 </head>
 <body>
-<p>
-    <button class="btn" onclick="brower()">浏览目录</button>
-    <label id="dir_path"></label>
-</p>
-<div class="overflow-x-auto">
-    <div class="w-full m-auto">
-        <span class="loading loading-infinity loading-lg"></span>
+<dialog id="modal_add" class="modal">
+    <div class="modal-box">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <h3 class="font-bold text-lg" id="modal_add_title">新增</h3>
+        <form id="app_submit" action="#" onsubmit="submit();return false">
+            <div class="form-control w-full mt-4">
+                <label class="label" for="Name">
+                    <span class="label-text text-base-content undefined">应用名称<span class="label-text text-base-content undefined text-error">(*)</span></span>
+                </label>
+                <input type="text" placeholder="" class="input input-bordered w-full" name="Name" id="Name" value="" />
+            </div>
+        </form>
+        <div class="modal-action">
+            <button class="btn btn-primary">提 交</button>
+            <form method="dialog">
+                <!-- if there is a button in form, it will close the modal -->
+                <button class="btn btn-ghost px-6">取 消</button>
+            </form>
+        </div>
     </div>
-    <table class="table">
+</dialog>
+<p>
+    <button class="btn" onclick="browser()">浏览目录</button>
+    <label id="dir_path"></label>
+    <!-- You can open the modal using ID.showModal() method -->
+    <button class="btn" onclick="modal_add.showModal()">新增</button>
+</p>
+<div class="overflow-x-auto h-96">
+    <div class="text-xl font-semibold px-4">应用列表
+        <div class="inline-block float-right">
+            <div class="inline-block mr-4">
+                <div class="input-group  relative flex flex-wrap items-stretch w-full">
+                    <input type="search" placeholder="搜索" class="input input-sm input-bordered w-full max-w-xs" name="keyword" onkeyup="search(this)" id="keyword">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="w-full m-auto">
+        <span class="loading loading-infinity loading-lg" id="loading"></span>
+    </div>
+    <table class="table table-pin-rows hidden" id="table">
         <!-- head -->
         <thead>
         <tr>
             <th></th>
-            <th>Name</th>
-            <th>Job</th>
-            <th>Favorite Color</th>
+            <th>名称</th>
+            <th>描述</th>
+            <th>操作</th>
         </tr>
         </thead>
         <tbody>
-        <!-- row 1 -->
-        <tr>
-            <th>1</th>
-            <td>Cy Ganderton</td>
-            <td>Quality Control Specialist</td>
-            <td>Blue</td>
-        </tr>
-        <!-- row 2 -->
-        <tr class="hover">
-            <th>2</th>
-            <td>Hart Hagerty</td>
-            <td>Desktop Support Technician</td>
-            <td>Purple</td>
-        </tr>
-        <!-- row 3 -->
-        <tr>
-            <th>3</th>
-            <td>Brice Swyre</td>
-            <td>Tax Accountant</td>
-            <td>Red</td>
-        </tr>
         </tbody>
     </table>
 </div>
 
 </body>
 <script>
-    function brower(){
+    $(function(){
+        $loading = $('#loading');
+        $dir_path = $('#dir_path');
+        $table = $('#table');
+        $tbody = $table.find('tbody');
+        apps().then(function(data){
+            console.log('apps_data', data);
+            window.setTimeout(function(){
+                $loading.hide();
+                $table.removeClass('hidden');
+                // 设置路径
+                $dir_path.text(data.data.path);
+                if(data.data.is_file){
+                    $dir_path.removeClass('text-error').addClass('text-info');
+                }else{
+                    $dir_path.removeClass('text-info').addClass('text-error');
+                }
+                // 更新表格
+                updateTable(data);
+            }, 1000)
+        });
+    });
+
+    function updateTable(data){
+        $tbody.html('');
+        $.each(data.data.apps, function(index, obj){
+            let editBtn = '<button class="btn btn-square btn-ghost btn-sm"><svg t="1716796763999" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2559" width="24" height="24"><path d="M853.333333 501.333333c-17.066667 0-32 14.933333-32 32v320c0 6.4-4.266667 10.666667-10.666666 10.666667H170.666667c-6.4 0-10.666667-4.266667-10.666667-10.666667V213.333333c0-6.4 4.266667-10.666667 10.666667-10.666666h320c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H170.666667c-40.533333 0-74.666667 34.133333-74.666667 74.666666v640c0 40.533333 34.133333 74.666667 74.666667 74.666667h640c40.533333 0 74.666667-34.133333 74.666666-74.666667V533.333333c0-17.066667-14.933333-32-32-32z" fill="#666666" p-id="2560"></path><path d="M405.333333 484.266667l-32 125.866666c-2.133333 10.666667 0 23.466667 8.533334 29.866667 6.4 6.4 14.933333 8.533333 23.466666 8.533333h8.533334l125.866666-32c6.4-2.133333 10.666667-4.266667 14.933334-8.533333l300.8-300.8c38.4-38.4 38.4-102.4 0-140.8-38.4-38.4-102.4-38.4-140.8 0L413.866667 469.333333c-4.266667 4.266667-6.4 8.533333-8.533334 14.933334z m59.733334 23.466666L761.6 213.333333c12.8-12.8 36.266667-12.8 49.066667 0 12.8 12.8 12.8 36.266667 0 49.066667L516.266667 558.933333l-66.133334 17.066667 14.933334-68.266667z" fill="#666666" p-id="2561"></path></svg></button>';
+            let deleteBtn = obj.CanDelete? '<button class="btn btn-square btn-ghost btn-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" class="w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"></path></svg></button>':'';
+            $tbody.append(`<tr><th>${index+1}</th><td>${obj.Name}</td><td>${obj.Desc}</td><td>${editBtn}${deleteBtn}</td></tr>`);
+        });
+    }
+
+    function browser(){
         dir().then(function (data){
             console.log(data)
-        })
+            $('#dir_path').text(data.data.path);
+        });
+    }
+
+    function search(e){
+        console.log(e.value);
+        apps(e.value).then(function(data){
+            updateTable(data);
+        });
+    }
+
+    function submit(){
+        return false;
     }
 </script>
 </html>
