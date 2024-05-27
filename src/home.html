@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="public/daisyui.min.css">
+    <script src="public/tailwindcss.js"></script>
+    <title>Document</title>
+</head>
+<body>
+<p>
+    <button class="btn" onclick="brower()">浏览目录</button>
+    <label id="dir_path"></label>
+</p>
+<div class="overflow-x-auto">
+    <div class="w-full m-auto">
+        <span class="loading loading-infinity loading-lg"></span>
+    </div>
+    <table class="table">
+        <!-- head -->
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Job</th>
+            <th>Favorite Color</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- row 1 -->
+        <tr>
+            <th>1</th>
+            <td>Cy Ganderton</td>
+            <td>Quality Control Specialist</td>
+            <td>Blue</td>
+        </tr>
+        <!-- row 2 -->
+        <tr class="hover">
+            <th>2</th>
+            <td>Hart Hagerty</td>
+            <td>Desktop Support Technician</td>
+            <td>Purple</td>
+        </tr>
+        <!-- row 3 -->
+        <tr>
+            <th>3</th>
+            <td>Brice Swyre</td>
+            <td>Tax Accountant</td>
+            <td>Red</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+<script>
+    function brower(){
+        dir().then(function (data){
+            console.log(data)
+        })
+    }
+</script>
+</html>
