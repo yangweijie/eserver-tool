@@ -38,7 +38,7 @@ function error($msg, $data=[]){
 }
 
 // 实例
-$webview = new WebView('Eserver 工具箱', 640, 480, true, __DIR__);
+$webview = new WebView('Eserver 工具箱', 800, 600, true, __DIR__);
 $view = 'file:///'.realpath('home.html');
 // 获取html
 // $html = file_get_contents(__DIR__ . '/src/index.html');
@@ -52,12 +52,34 @@ function parse_apps(string $software_file)
     return [];
 }
 
+function parse_app_post($post){
+    $post['CanDelete'] = true;
+    if($post['Type'] == 'Tool'){
+        unset($post['ServerName']);
+        unset($post['ServerPort']);
+        unset($post['ServerProcessPath']);
+        unset($post['StartServerArgs']);
+    }else{
+        unset($post['WinExePath']);
+    }
+    unset($post['id']);
+    return $post;
+}
+
 $webview->bind('apps', function ($seq, $req, $context) {
     $dir = config('dir');
     $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
 //    var_dump($software_file);
     $is_file = file_exists($software_file);
     $apps = parse_apps($software_file);
+    if($apps){
+        // PHP 和 mysql 不让删除，走软件的卸载
+        foreach ($apps as &$app){
+            if(stripos($app['Name'], 'php') !== false || stripos($app['Name'], 'php') !== false){
+                $app['CanDelete'] = false;
+            }
+        }
+    }
     if($req){
         $apps = array_filter($apps, function ($app) use ($req) {
             var_dump($req[0]);
@@ -66,6 +88,43 @@ $webview->bind('apps', function ($seq, $req, $context) {
     }
     return ok('', ['path'=>$dir, 'apps'=>$apps, 'is_file'=>$is_file]);
 });
+
+$webview->bind('app_add', function ($seq, $req, $context) {
+    $post = [];
+    parse_str($req[0], $post);
+    var_dump($post);
+
+    $dir = config('dir');
+    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $apps = parse_apps($software_file);
+    $apps[] = parse_app_post($post);
+    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+    return ok('', ['apps'=>$apps]);
+});
+
+
+$webview->bind('app_edit', function ($seq, $req, $context) {
+    var_dump($req[0]);
+    $post = $req[0];
+    $dir = config('dir');
+    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $apps = parse_apps($software_file);
+    $old = $apps[$post['Id']-1];
+    $apps[$post['Id']-1] = array_merge($old, parse_app_post($post));
+    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+    return ok('', ['apps'=>$apps]);
+});
+
+$webview->bind('app_del', function ($seq, $req, $context) {
+    $index = $req[0] - 1;
+    $dir = config('dir');
+    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $apps = parse_apps($software_file);
+    unset($apps[$index]);
+    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+    return ok('', ['apps'=>array_values($apps)]);
+});
+
 // __DIR__ 入口位置
 $dialog = new Dialog(__DIR__);
 $webview->bind('dir', function ($seq, $req, $context) use($dialog){
