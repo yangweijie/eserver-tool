@@ -47,21 +47,32 @@ $webview->navigate($view);
 function parse_apps(string $software_file)
 {
     if(is_file($software_file)){
-        return json_decode(file_get_contents($software_file), true);
+        $ret = json_decode(file_get_contents($software_file), true);
+        if($ret){
+            foreach($ret as $k=>$v){
+                if(isset($v['RemoteArchiveExt']) || stripos($v['Name'], 'composer') !== false){
+                    unset($ret[$k]);
+                }
+            }
+            $ret = array_values($ret);
+        }
+        return $ret;
     }
     return [];
 }
 
 function parse_app_post($post){
-    $post['CanDelete'] = true;
     if($post['Type'] == 'Tool'){
         unset($post['ServerName']);
         unset($post['ServerPort']);
         unset($post['ServerProcessPath']);
         unset($post['StartServerArgs']);
     }else{
+        $post['ShellServerProcess'] = true;
         unset($post['WinExePath']);
     }
+    $post['CanDelete'] = true;
+    $post['DirName'] = strtolower($post['Name']);
     unset($post['id']);
     return $post;
 }
