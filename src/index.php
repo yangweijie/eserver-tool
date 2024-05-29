@@ -131,6 +131,13 @@ $webview->bind('apps', function ($seq, $req, $context) {
     return ok('', ['path'=>$dir, 'apps'=>$apps, 'is_file'=>$is_file]);
 });
 
+function bak_config()
+{
+    $dir = config('dir');
+    $config_path = $dir.DS.'core'.DS.'config'.DS.'software'.DS;
+    file_put_contents($config_path.'software.json.'.time(), file_get_contents($config_path.'software.json'));
+}
+
 $webview->bind('app_add', function ($seq, $req, $context) {
     $post = [];
     parse_str($req[0], $post);
@@ -141,6 +148,7 @@ $webview->bind('app_add', function ($seq, $req, $context) {
     $apps = parse_apps($software_file, 'all');
     try {
         $apps[] = parse_app_post($post);
+        bak_config();
         file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
         return ok('', ['apps'=>parse_apps($software_file)]);
     }catch (Exception $e){
@@ -164,6 +172,7 @@ $webview->bind('app_edit', function ($seq, $req, $context) {
         foreach($apps as $app){
             $apps_official[] = $app;
         }
+        bak_config();
         file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
         return ok('', ['apps'=>parse_apps($software_file)]);
     }catch (Exception $e){
@@ -181,6 +190,7 @@ $webview->bind('app_del', function ($seq, $req, $context) {
     foreach($apps as $app){
         $apps_official[] = $app;
     }
+    bak_config();
     file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
     return ok('', ['apps'=>array_values($apps)]);
 });
