@@ -6,6 +6,12 @@ use KingBes\PhpWebview\WebView;
 use KingBes\PhpWebview\Dialog;
 
 define('DS', DIRECTORY_SEPARATOR);
+
+function shutdown(){
+    $error = error_get_last();
+    return $error && error($error['message']);
+}
+register_shutdown_function('shutdown');
 function config($key='', $default = null){
     $conf = require 'config.php';
     return $key? ($conf[$key]??$default) : $conf;
@@ -44,17 +50,29 @@ $view = 'file:///'.realpath('home.html');
 // $html = file_get_contents(__DIR__ . '/src/index.html');
 $webview->navigate($view);
 // 绑定
-function parse_apps(string $software_file)
+function parse_apps(string $software_file, $ret_mode = 'third_only')
 {
     if(is_file($software_file)){
         $ret = json_decode(file_get_contents($software_file), true);
         if($ret){
-            foreach($ret as $k=>$v){
-                if(isset($v['RemoteArchiveExt']) || stripos($v['Name'], 'composer') !== false){
-                    unset($ret[$k]);
+            if($ret_mode !== 'all'){
+                if($ret_mode === 'third_only'){
+                    foreach($ret as $k=>$v){
+                        if(isset($v['RemoteArchiveExt']) || stripos($v['Name'], 'composer') !== false) {
+                            unset($ret[$k]);
+                        }
+                    }
+                    $ret = array_values($ret);
+                }else{
+                    $official = [];
+                    foreach($ret as $k=>$v){
+                        if(isset($v['RemoteArchiveExt']) || stripos($v['Name'], 'composer') !== false) {
+                            $official[] = $v;
+                        }
+                    }
+                    return $official;
                 }
             }
-            $ret = array_values($ret);
         }
         return $ret;
     }
@@ -62,7 +80,16 @@ function parse_apps(string $software_file)
 }
 
 function parse_app_post($post){
+    if(empty($post['Name'])){
+        throw new Exception('应用名称必填');
+    }
+    if(empty($post['Desc'])){
+        throw new Exception('应用描述必填');
+    }
     if($post['Type'] == 'Tool'){
+        if(empty($post['WinExePath'])){
+            throw new Exception('工具主程序名称必填');
+        }
         unset($post['ServerName']);
         unset($post['ServerPort']);
         unset($post['ServerProcessPath']);
@@ -70,10 +97,14 @@ function parse_app_post($post){
     }else{
         $post['ShellServerProcess'] = true;
         unset($post['WinExePath']);
+        $post['StartServerArgs'] = $post['StartServerArgs']? explode(',', $post['StartServerArgs']) : [];
+        if(empty($post['ServerProcessPath'])){
+            throw new Exception('服务进程的路径必填');
+        }
     }
     $post['CanDelete'] = true;
     $post['DirName'] = strtolower($post['Name']);
-    unset($post['id']);
+    unset($post['Id']);
     return $post;
 }
 
@@ -107,23 +138,37 @@ $webview->bind('app_add', function ($seq, $req, $context) {
 
     $dir = config('dir');
     $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
-    $apps = parse_apps($software_file);
-    $apps[] = parse_app_post($post);
-    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
-    return ok('', ['apps'=>$apps]);
+    $apps = parse_apps($software_file, 'all');
+    try {
+        $apps[] = parse_app_post($post);
+        file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+        return ok('', ['apps'=>parse_apps($software_file)]);
+    }catch (Exception $e){
+        return error($e->getMessage());
+    }
 });
 
 
 $webview->bind('app_edit', function ($seq, $req, $context) {
     var_dump($req[0]);
-    $post = $req[0];
+    $post = [];
+    parse_str($req[0], $post);
+    $post['Id'] = (int) $post['Id'];
     $dir = config('dir');
     $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
     $apps = parse_apps($software_file);
-    $old = $apps[$post['Id']-1];
-    $apps[$post['Id']-1] = array_merge($old, parse_app_post($post));
-    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
-    return ok('', ['apps'=>$apps]);
+    try {
+        $old = $apps[$post['Id']-1];
+        $apps[$post['Id']-1] = array_merge($old, parse_app_post($post));
+        $apps_official = parse_apps($software_file, 'official');
+        foreach($apps as $app){
+            $apps_official[] = $app;
+        }
+        file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+        return ok('', ['apps'=>parse_apps($software_file)]);
+    }catch (Exception $e){
+        return error($e->getMessage());
+    }
 });
 
 $webview->bind('app_del', function ($seq, $req, $context) {
@@ -132,7 +177,11 @@ $webview->bind('app_del', function ($seq, $req, $context) {
     $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
     $apps = parse_apps($software_file);
     unset($apps[$index]);
-    file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
+    $apps_official = parse_apps($software_file, 'official');
+    foreach($apps as $app){
+        $apps_official[] = $app;
+    }
+    file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
     return ok('', ['apps'=>array_values($apps)]);
 });
 
@@ -143,6 +192,11 @@ $webview->bind('dir', function ($seq, $req, $context) use($dialog){
     $ret = $dialog->dir(dirs:$conf['dir']);
     config_save($ret);
     return ok('', ['path'=>$ret]);
+});
+
+$webview->bind('icon', function ($seq, $req, $context) use($dialog){
+    $path = $dialog->file();
+    return ok('', ['icon'=>pathinfo($path, PATHINFO_BASENAME)]);
 });
 // 运行
 $webview->run();

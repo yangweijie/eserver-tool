@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="public/daisyui.min.css">
     <script src="public/tailwindcss.js"></script>
     <script src="public/jquery-3.7.1.min.js"></script>
-    <title>Document</title>
+    <title>eserver 工具</title>
 </head>
 <body>
 <dialog id="modal_add" class="modal">
@@ -30,6 +30,13 @@
                 应用描述
                 <input type="text" class="grow" placeholder="" name="Desc" id="Desc"/>
             </label>
+
+            <label class="input input-bordered flex items-center gap-2" for="Icon">
+                <input type="text" class="grow" placeholder="icon名称 可通过选择icon图片文件获得" name="Icon" id="Icon"/>
+                <button onclick="chooseIcon()" class="flex-shrink-0 bg-teal-500 hover:bg-teal-700 border-teal-500 hover:border-teal-700 text-sm border-4 text-white py-1 px-2 rounded" type="button">
+                    选择icon文件
+                </button>
+            </label>
             <label class="server-item input input-bordered flex items-center gap-2" for="ServerName">
                 服务名称
                 <input type="text" class="grow" placeholder="" name="ServerName" id="ServerName"/>
@@ -45,14 +52,14 @@
                     <span class="label-text-alt"><div class="tooltip tooltip-left" data-tip="Server 是服务型应用;Tool是直接打开"><svg t="1716802105535" class="icon leading-[14px]" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2656" width="14" height="14"><path d="M512 0a512 512 0 0 0-512 512 512 512 0 0 0 512 512 512 512 0 0 0 512-512 512 512 0 0 0-512-512z m0 910.222222A398.222222 398.222222 0 1 1 512 113.777778a398.222222 398.222222 0 0 1 0 796.444444z" fill="#13227a" p-id="2657"></path><path d="M540.444444 455.111111h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v227.555555a28.444444 28.444444 0 0 0 28.444445 28.444445h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444445v-227.555555a28.444444 28.444444 0 0 0-28.444445-28.444445zM540.444444 284.444444h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v56.888889a28.444444 28.444444 0 0 0 28.444445 28.444444h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444444v-56.888889a28.444444 28.444444 0 0 0-28.444445-28.444445z" fill="#13227a"></path></svg></div></span>
                 </div>
                 <select class="select select-bordered" name="Type" id="Type" required onchange="changeType(this.value)">
-                    <option value="PHP" disabled>PHP</option>
+<!--                    <option value="PHP" disabled>PHP</option>-->
                     <option value="Server" selected>Server</option>
                     <option value="Tool">Tool</option>
                 </select>
             </label>
 
             <label class="tool-item input input-bordered flex items-center gap-2" for="WinExePath">
-                工具主程序名称
+                <span class="label-text text-base-content undefined text-error">(*)</span>工具主程序名称
                 <input type="text" class="grow" placeholder="xxx.exe" name="WinExePath" id="WinExePath"/>
             </label>
             <label class="server-item input input-bordered flex items-center gap-2" for="ServerPort">
@@ -61,9 +68,9 @@
                 <div class="tooltip tooltip-left" data-tip="如果存在，就代替'Name'在启动服务前，会根据这个字段杀死占用端口的进程，以确保服务成功启动。将这个字段设置成null或者空。那么就不会在启动前做杀死占用端口的进程的操作"><svg t="1716802105535" class="icon leading-[14px]" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2656" width="14" height="14"><path d="M512 0a512 512 0 0 0-512 512 512 512 0 0 0 512 512 512 512 0 0 0 512-512 512 512 0 0 0-512-512z m0 910.222222A398.222222 398.222222 0 1 1 512 113.777778a398.222222 398.222222 0 0 1 0 796.444444z" fill="#13227a" p-id="2657"></path><path d="M540.444444 455.111111h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v227.555555a28.444444 28.444444 0 0 0 28.444445 28.444445h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444445v-227.555555a28.444444 28.444444 0 0 0-28.444445-28.444445zM540.444444 284.444444h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v56.888889a28.444444 28.444444 0 0 0 28.444445 28.444444h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444444v-56.888889a28.444444 28.444444 0 0 0-28.444445-28.444445z" fill="#13227a"></path></svg></div>
             </label>
             <label class="server-item input input-bordered flex items-center gap-2" for="ServerProcessPath">
-                服务进程的路径
-                <input type="text" class="grow" placeholder="" name="ServerProcessPath" id="ServerProcessPath"/>
-                <div class="tooltip tooltip-left" data-tip="如果存在，就代替'Name'在启动服务前，会根据这个字段杀死占用端口的进程，以确保服务成功启动。将这个字段设置成null或者空。那么就不会在启动前做杀死占用端口的进程的操作"><svg t="1716802105535" class="icon leading-[14px]" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2656" width="14" height="14"><path d="M512 0a512 512 0 0 0-512 512 512 512 0 0 0 512 512 512 512 0 0 0 512-512 512 512 0 0 0-512-512z m0 910.222222A398.222222 398.222222 0 1 1 512 113.777778a398.222222 398.222222 0 0 1 0 796.444444z" fill="#13227a" p-id="2657"></path><path d="M540.444444 455.111111h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v227.555555a28.444444 28.444444 0 0 0 28.444445 28.444445h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444445v-227.555555a28.444444 28.444444 0 0 0-28.444445-28.444445zM540.444444 284.444444h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v56.888889a28.444444 28.444444 0 0 0 28.444445 28.444444h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444444v-56.888889a28.444444 28.444444 0 0 0-28.444445-28.444445z" fill="#13227a"></path></svg></div>
+                服务进程的路径<span class="label-text text-base-content undefined text-error">(*)</span>
+                <input type="text" class="grow" placeholder="" name="ServerProcessPath" id="ServerProcessPath" required/>
+                <div class="tooltip tooltip-left" data-tip="相对于应用目录下的主程序路径，可以包含子目录"><svg t="1716802105535" class="icon leading-[14px]" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2656" width="14" height="14"><path d="M512 0a512 512 0 0 0-512 512 512 512 0 0 0 512 512 512 512 0 0 0 512-512 512 512 0 0 0-512-512z m0 910.222222A398.222222 398.222222 0 1 1 512 113.777778a398.222222 398.222222 0 0 1 0 796.444444z" fill="#13227a" p-id="2657"></path><path d="M540.444444 455.111111h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v227.555555a28.444444 28.444444 0 0 0 28.444445 28.444445h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444445v-227.555555a28.444444 28.444444 0 0 0-28.444445-28.444445zM540.444444 284.444444h-56.888888a28.444444 28.444444 0 0 0-28.444445 28.444445v56.888889a28.444444 28.444444 0 0 0 28.444445 28.444444h56.888888a28.444444 28.444444 0 0 0 28.444445-28.444444v-56.888889a28.444444 28.444444 0 0 0-28.444445-28.444445z" fill="#13227a"></path></svg></div>
             </label>
             <label class="server-item input input-bordered flex items-center gap-2" for="ServerConfPath">
                 服务配置
@@ -85,13 +92,20 @@
     </div>
 </dialog>
 <p>
-    <button class="btn" onclick="browser()">浏览目录</button>
-    <label id="dir_path"></label>
-    <!-- You can open the modal using ID.showModal() method -->
+<div role="alert" class="alert alert-warning">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    <span>操作前请先手动备份 <code>core\config\software\software.json</code>，新增、编辑、删除后请将打开中的eserver 退出重新打开方能看见效果。</span>
+</div>
+</p>
+<p>
     <button class="btn" onclick="openAddModel();">新增</button>
+    <button class="btn" onclick="browser()">浏览目录</button>
+    <label id="dir_path" class=""></label>
+    <!-- You can open the modal using ID.showModal() method -->
 </p>
 <div class="overflow-x-auto h-96">
-    <div class="text-xl font-semibold px-4">应用列表
+
+    <div class="text-xl font-semibold px-4">第三方应用列表
         <div class="inline-block float-right">
             <div class="inline-block mr-4">
                 <div class="input-group  relative flex flex-wrap items-stretch w-full">
@@ -237,15 +251,24 @@
         if(id === ''){
             app_add(formData).then(function(data){
                 console.log(data);
-                updateTable(data);
+                if(data.code === 0){
+                    updateTable(data);
+                    modal_add.close();
+                }else{
+                    alert(data.msg);
+                }
             });
         }else{
             app_edit(formData).then(function(data){
                 console.log(data);
-                updateTable(data);
+                if(data.code === 0){
+                    updateTable(data);
+                    modal_add.close();
+                }else{
+                    alert(data.msg);
+                }
             });
         }
-        modal_add.close();
         return false;
     }
 
@@ -256,6 +279,12 @@
                 updateTable(data);
             });
         }
+    }
+
+    function chooseIcon(){
+        icon().then(function (data) {
+            $('#Icon').val(data.data.icon);
+        });
     }
 </script>
 </html>
