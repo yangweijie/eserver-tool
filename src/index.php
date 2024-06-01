@@ -12,6 +12,7 @@ function shutdown(){
     return $error && error($error['message']);
 }
 register_shutdown_function('shutdown');
+global $is_new;
 $is_new = false;
 function config($key='', $default = null){
     $conf = json_decode(file_get_contents(__DIR__.DS.'config.json'), true);
@@ -104,7 +105,8 @@ function parse_app_post($post){
     return $post;
 }
 
-$webview->bind('apps', function ($seq, $req, $context)use($webview, &$is_new) {
+$webview->bind('apps', function ($seq, $req, $context)use($webview) {
+    global $is_new;
     $dir = config('dir');
     if(is_dir($dir.DS.'core'.DS.'custom')){ // 是新版
         $is_new = true;
@@ -148,7 +150,8 @@ function bak_config($is_new)
     file_put_contents($config_path.'software.json.bak', file_get_contents($config_path.'software.json'));
 }
 
-$webview->bind('app_add', function ($seq, $req, $context) use(&$is_new){
+$webview->bind('app_add', function ($seq, $req, $context){
+    global $is_new;
     $post = [];
     parse_str($req[0], $post);
     var_dump($post);
@@ -164,7 +167,8 @@ $webview->bind('app_add', function ($seq, $req, $context) use(&$is_new){
     }
 });
 
-$webview->bind('app_edit', function ($seq, $req, $context) use($is_new) {
+$webview->bind('app_edit', function ($seq, $req, $context) {
+    global $is_new;
     var_dump($req[0]);
     $post = [];
     parse_str($req[0], $post);
@@ -186,9 +190,10 @@ $webview->bind('app_edit', function ($seq, $req, $context) use($is_new) {
     }
 });
 
-$webview->bind('app_del', function ($seq, $req, $context) use($is_new){
+$webview->bind('app_del', function ($seq, $req, $context){
+    global $is_new;
     $index = $req[0] - 1;
-    $software_file = get_config_path($context->is_new).'software.json';
+    $software_file = get_config_path($is_new).'software.json';
     $apps = parse_apps($software_file);
     unset($apps[$index]);
     $apps_official = parse_apps($software_file, 'official');
@@ -202,7 +207,8 @@ $webview->bind('app_del', function ($seq, $req, $context) use($is_new){
 
 // __DIR__ 入口位置
 $dialog = new Dialog(__DIR__);
-$webview->bind('dir', function ($seq, $req, $context) use($dialog, &$is_new){
+$webview->bind('dir', function ($seq, $req, $context) use($dialog){
+    global $is_new;
     $dir = config('dir');
     $ret = $dialog->dir(dirs:$dir);
     if($ret){
