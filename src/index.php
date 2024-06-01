@@ -12,23 +12,19 @@ function shutdown(){
     return $error && error($error['message']);
 }
 register_shutdown_function('shutdown');
+$is_new = false;
 function config($key='', $default = null){
-    $conf = require 'config.php';
+    $conf = json_decode(file_get_contents(__DIR__.DS.'config.json'), true);
     return $key? ($conf[$key]??$default) : $conf;
 }
 
 function config_save($dir){
     $now = date("Y-m-d H:i:s");
-    $configs = var_export([
-        'dir'=>$dir
-    ], true);
-    $content = <<<Conf
-<?php
-// $now 更新
-return $configs;
-Conf;
-
-    file_put_contents('config.php', $content);
+    $content = json_encode([
+        'dir'=>$dir,
+        'updated'=>$now,
+    ]);
+    file_put_contents(__DIR__.DS.'config.json', $content);
 }
 
 function result($code, $msg, $data = []){
@@ -45,7 +41,7 @@ function error($msg, $data=[]){
 
 // 实例
 $webview = new WebView('Eserver 工具箱', 800, 600, true, __DIR__);
-$view = 'file:///'.realpath('home.html');
+$view = 'file://'. __DIR__ . DS.'home.html';
 // 获取html
 // $html = file_get_contents(__DIR__ . '/src/index.html');
 $webview->navigate($view);
@@ -108,9 +104,14 @@ function parse_app_post($post){
     return $post;
 }
 
-$webview->bind('apps', function ($seq, $req, $context) {
+$webview->bind('apps', function ($seq, $req, $context)use($webview, &$is_new) {
     $dir = config('dir');
-    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    if(is_dir($dir.DS.'core'.DS.'custom')){ // 是新版
+        $is_new = true;
+    }else{
+        $is_new = false;
+    }
+    $software_file = get_config_path($is_new).'software.json';
 //    var_dump($software_file);
     $is_file = file_exists($software_file);
     $apps = parse_apps($software_file);
@@ -128,27 +129,34 @@ $webview->bind('apps', function ($seq, $req, $context) {
             return stripos($app['Name'], $req[0]) !== false || stripos($app['Desc'], $req[0]) !== false;
         });
     }
-    return ok('', ['path'=>$dir, 'apps'=>$apps, 'is_file'=>$is_file]);
+    return ok('', ['path'=>$dir, 'apps'=>$apps, 'is_file'=>$is_file, 'is_new'=>$is_new, 'title'=>$is_new?'Eserver （新版）工具箱':'Eserver 工具箱']);
 });
 
-function bak_config()
-{
+function get_config_path($is_new = false){
     $dir = config('dir');
-    $config_path = $dir.DS.'core'.DS.'config'.DS.'software'.DS;
-    file_put_contents($config_path.'software.json.'.time(), file_get_contents($config_path.'software.json'));
+    if($is_new){
+        $software_path = $dir.DS.'core'.DS.'custom'.DS.'software'.DS;
+    }else{
+        $software_path = $dir.DS.'core'.DS.'config'.DS.'software'.DS;
+    }
+    return $software_path;
 }
 
-$webview->bind('app_add', function ($seq, $req, $context) {
+function bak_config($is_new)
+{
+    $config_path = get_config_path($is_new);
+    file_put_contents($config_path.'software.json.bak', file_get_contents($config_path.'software.json'));
+}
+
+$webview->bind('app_add', function ($seq, $req, $context) use(&$is_new){
     $post = [];
     parse_str($req[0], $post);
     var_dump($post);
-
-    $dir = config('dir');
-    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $software_file = get_config_path($is_new).'software.json';
     $apps = parse_apps($software_file, 'all');
     try {
         $apps[] = parse_app_post($post);
-        bak_config();
+        bak_config($is_new);
         file_put_contents($software_file, json_encode($apps, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
         return ok('', ['apps'=>parse_apps($software_file)]);
     }catch (Exception $e){
@@ -156,14 +164,12 @@ $webview->bind('app_add', function ($seq, $req, $context) {
     }
 });
 
-
-$webview->bind('app_edit', function ($seq, $req, $context) {
+$webview->bind('app_edit', function ($seq, $req, $context) use($is_new) {
     var_dump($req[0]);
     $post = [];
     parse_str($req[0], $post);
     $post['Id'] = (int) $post['Id'];
-    $dir = config('dir');
-    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $software_file = get_config_path($is_new).'software.json';
     $apps = parse_apps($software_file);
     try {
         $old = $apps[$post['Id']-1];
@@ -172,7 +178,7 @@ $webview->bind('app_edit', function ($seq, $req, $context) {
         foreach($apps as $app){
             $apps_official[] = $app;
         }
-        bak_config();
+        bak_config($is_new);
         file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
         return ok('', ['apps'=>parse_apps($software_file)]);
     }catch (Exception $e){
@@ -180,27 +186,35 @@ $webview->bind('app_edit', function ($seq, $req, $context) {
     }
 });
 
-$webview->bind('app_del', function ($seq, $req, $context) {
+$webview->bind('app_del', function ($seq, $req, $context) use($is_new){
     $index = $req[0] - 1;
-    $dir = config('dir');
-    $software_file = $dir.DS.'core'.DS.'config'.DS.'software'.DS.'software.json';
+    $software_file = get_config_path($context->is_new).'software.json';
     $apps = parse_apps($software_file);
     unset($apps[$index]);
     $apps_official = parse_apps($software_file, 'official');
     foreach($apps as $app){
         $apps_official[] = $app;
     }
-    bak_config();
+    bak_config($is_new);
     file_put_contents($software_file, json_encode($apps_official, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
     return ok('', ['apps'=>array_values($apps)]);
 });
 
 // __DIR__ 入口位置
 $dialog = new Dialog(__DIR__);
-$webview->bind('dir', function ($seq, $req, $context) use($dialog){
-    $conf = config();
-    $ret = $dialog->dir(dirs:$conf['dir']);
-    config_save($ret);
+$webview->bind('dir', function ($seq, $req, $context) use($dialog, &$is_new){
+    $dir = config('dir');
+    $ret = $dialog->dir(dirs:$dir);
+    if($ret){
+        if(is_dir($dir.DS.'core'.DS.'custom')){
+            $is_new = true;
+        }else{
+            $is_new = false;
+        }
+        config_save($ret);
+    }else{
+        $ret = $dir;
+    }
     return ok('', ['path'=>$ret]);
 });
 
